@@ -1,0 +1,66 @@
+https://inst.eecs.berkeley.edu/~ee123/sp15/ (python showing rtl adsb decade)
+
+https://witestlab.poly.edu/blog/capture-and-decode-fm-radio/
+
+http://gnuradio.squarespace.com/gr-tutorial/
+
+http://www.allaboutcircuits.com/technical-articles/fsk-explained-with-python/
+
+http://gnuradio.4.n7.nabble.com/The-GMSK-demodulation-td46627.html
+
+http://catb.org/gpsd/AIVDM.html
+
+https://inst.eecs.berkeley.edu/~ee123/sp15/lab/lab4/lab4-Frequency_Calibration_Using_GSM_BaseStations_Q.html
+
+http://www.eetimes.com/document.asp?doc_id=1276341&page_number=2
+
+http://aaronscher.com/wireless_com_SDR/RTL_SDR_AM_spectrum_demod.html
+
+https://witestlab.poly.edu/blog/capture-and-decode-fm-radio/
+
+https://github.com/dswiston/pyFmRadio/blob/master/pyFmRadio.py
+
+http://www.eas.uccs.edu/~mwickert/ece4670/
+
+http://www.eas.uccs.edu/~mwickert/ece4670/lecture_notes/Lab6.pdf
+
+https://github.com/rubund/gnuais/tree/testmessages/testmessages
+
+https://epxx.co/artigos/qam_rx.html
+
+https://www.gaussianwaves.com/2017/04/extracting-instantaneous-amplitude-phase-frequency-hilbert-transform/
+
+https://www.nbtwiki.net/doku.php?id=tutorial:phase_locking_value#.VchjR6ZVhBc
+
+https://dsp.stackexchange.com/questions/25165/phase-locking-value-phase-synchronization
+
+https://dsp.stackexchange.com/questions/18515/how-to-recover-complex-values-downconvert-from-fm-modulation-composite-signal
+
+########################
+Used
+########################
+http://www.maritec.co.za/tools/aisvdmvdodecoding/
+http://www.bosunsmate.org/ais/
+https://www.navcen.uscg.gov/?pageName=AISMessages
+https://www.navcen.uscg.gov/?pageName=AISReferences
+http://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.1371-5-201402-I!!PDF-E.pdf
+http://catb.org/gpsd/AIVDM.html
+https://github.com/freerange/ais-on-sdr/wiki/Capturing-raw-AIS-data-using-rtl_fm-and-decoding-using-aisdecoder-v2
+https://www.latlong.net/lat-long-dms.html
+
+########################
+ Then, each byte in the data is byte flipped, as HDLC sends the information LSB first - the data is now readable and information could be extracted directly (first 6 bits are the messagetype, etc. - see [link removed]). 
+ 
+ Then I calculate the CRC using the polynomium 0x1021 and the start value 0x84CF - only the data is included, the two CRC bytes are not included in the process. 
+ 
+ Each byte that is shifted in is byte flipped, corresponding to the "reverse data bytes" option. After the whole shifting and XOR'ing process, the result is inverted: 0's become 1's and visa versa, this is denoted as 1's complement (article on wiki: [link removed]) in the ITU standard (link to pdf: [link removed]) describing the process and corresponds to XORing the result with 0xFFFF. Then, finally, the result is flipped byte-wise (not word-wise), this corresponds to the "reverse CRC result before final XOR" option of the CRC calculator by Reifegerste. This result can be compared to the two CRC bytes of the stream. 
+ 
+ 
+ 
+ http://www.sunshine2k.de/articles/coding/crc/understanding_crc.html#ch5
+ https://bytes.com/topic/python/answers/27677-crc-16-a
+ 
+ https://github.com/mitshell/libmich/blob/master/libmich/utils/CrcMoose.py
+ https://gist.github.com/ygmpkk/6209380
+ https://gist.github.com/oysstu/68072c44c02879a2abf94ef350d1c7c6
+ 
