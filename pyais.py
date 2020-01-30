@@ -1,9 +1,9 @@
 import argparse
 from multiprocessing import Pipe
 
-from pyais import radio
-from pyais import complex_demod as simple_demod
-from pyais import message
+from ais import radio
+from ais import complex_demod as simple_demod
+from ais import message
 
 
 if __name__ == "__main__":
