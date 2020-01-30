@@ -125,7 +125,7 @@ dmypy.json
 .pyre/
 
 # Specific to this project
-ReferenceData/
-random/
-misc_utils/
-pyais/old/
+\ReferenceData/
+\random/
+\misc_utils/
+\pyais/old/
