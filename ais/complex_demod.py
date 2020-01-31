@@ -198,60 +198,32 @@ class PLL():
         self.samp_sym = sps
         self.out_queue = out
         
-        self.small_step = 2 #0:44 1:84 2:87 3:83 4:76 5:82 6:60 7:53 8:38 9:49 10:59 11:39 12:25
+        self.small_step = 3 #0:49 1:79 2:88 3:92 4:88 5:87 6:69 7:70 8:63 9:56 10: 11: 12:
         self.step = 10
         self.max = self.step * sps
         self.mid = self.max / 2
         self.offset = 0
         
-        self.phase_adjust = 0
-        
         self.prev = 0
         self.current = 0
         
-        self.debug_last_phase = 0
-        
         self.run_flag = True    
 
-        self.last_samples = deque(maxlen=self.samp_sym // 2 )
-        self.last_phases = deque(maxlen=self.samp_sym // 2 )
-        #print("Max historical length: {}".format(self.samp_sym //2 ))
-        
-        #self.last_samples = deque(maxlen=self.samp_sym)
-        self.averages = []
-        
-        #Create a filter for the demodulated signal
-        baud = 9600
-        cut_freq = baud * 0.25
-        fs = sps * baud
-        N = 3
-        self.pb, self.pa = scipy.signal.butter(N, cut_freq, btype = 'lowpass', analog = False, fs = fs)
-        #Calculate initial filter values
-        self.pzi = scipy.signal.lfilter_zi(self.pb, self.pa)
+        #self.last_samples = deque(maxlen=self.samp_sym // 2 ) #for working pll
+        self.last_samples = deque(maxlen=self.samp_sym - 1) #for testing pll 5: 4:88 3:84 2:81 1:
         
         
-    def pll(self): #working
+        
+        
+    def pll(self): #testing
         try:
             out = bitstring.BitArray()
             while self.run_flag:
                 chunk = self.sample_queue.popleft()
                 # Convert to phase
                 p = np.angle(chunk)
-                #p_filtered, self.pzi = scipy.signal.lfilter(self.pb, self.pa, p, zi = self.pzi) 
-                if self.channel == 'x':
-                    plt.subplot(3, 1, 1)
-                    plt.scatter(np.real(chunk), np.imag(chunk))
-                    plt.subplot(3, 1, 2)
-                    plt.plot(np.angle(chunk))
-                    plt.subplot(3, 1, 3)
-                    plt.plot(self.averages)
-                    #plt.pause(0.05)
-                    plt.show()
-                    plt.clf()
-                    self.averages = []
                     
                 for s in p:
-                    #print(s)
                     phase = s
                     
                     if phase > 0:
@@ -263,7 +235,7 @@ class PLL():
                     
                     self.offset += self.step
                     
-                    if (self.prev ^ self.current) == 1:
+                    if (self.prev ^ self.current):
                         #Phase change                        
                         if self.offset > self.mid:
                             self.offset -= self.small_step
@@ -274,21 +246,16 @@ class PLL():
                             
                         
                         
-                    if self.offset >= self.max:
-                        
+                    if self.offset >= self.max:                        
                         #Instead of current value, use average of last values
                         avg = np.average(self.last_samples)
-                        #print("Avg: {} Cur: {}".format(avg, self.current))
                         
-                        if avg > 0:
+                        if avg > 0.49:
                             self.current = 1
+                            out.append('0b1')
                         else:
                             self.current = 0
-                            
-                        if self.current == 0:
                             out.append('0b0')
-                        else:
-                            out.append('0b1')
                         
                         self.offset -= self.max
                             
@@ -307,4 +274,61 @@ class PLL():
             print(str(e))
             pass
             
-   
+    def pll_working(self): #working
+        try:
+            out = bitstring.BitArray()
+            while self.run_flag:
+                chunk = self.sample_queue.popleft()
+                # Convert to phase
+                p = np.angle(chunk)
+                    
+                for s in p:
+                    phase = s
+                    
+                    if phase > 0:
+                        self.current = 1
+                    else:
+                        self.current = 0
+                    
+                    self.last_samples.append(self.current)
+                    
+                    self.offset += self.step
+                    
+                    if (self.prev ^ self.current):
+                        #Phase change                        
+                        if self.offset > self.mid:
+                            self.offset -= self.small_step
+                        elif self.offset < self.mid:
+                            self.offset += self.small_step
+                        else:
+                            pass
+                            
+                        
+                        
+                    if self.offset >= self.max:                        
+                        #Instead of current value, use average of last values
+                        avg = np.average(self.last_samples)
+                        
+                        if avg > 0.49:
+                            self.current = 1
+                            out.append('0b1')
+                        else:
+                            self.current = 0
+                            out.append('0b0')
+                        
+                        self.offset -= self.max
+                            
+                    self.prev = self.current
+                
+                if out:
+                    self.out_queue.send(out)
+                    out.clear()
+        
+        except IndexError:
+            #empty dequeue
+            pass
+        
+        except Exception as e:
+            #Other exceptions
+            print(str(e))
+            pass

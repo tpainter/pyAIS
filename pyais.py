@@ -28,7 +28,7 @@ if __name__ == "__main__":
         decimate = 1
         stats_rate = 30
         f = []
-        #f.append(["recordings\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 2 w/ 4k gaussian
+        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 2 w/ 4k gaussian
         
         f.append(["recordings\_LA_LB_Snippet16_Proc.wav", "8s"]) #72 80 w new PLL 74 w/o dc remove
         #f.append(["recordings\long-beach-160-messages.wav", "8s"]) #Can't get to work
