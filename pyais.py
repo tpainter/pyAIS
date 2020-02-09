@@ -28,17 +28,17 @@ if __name__ == "__main__":
         decimate = 1
         stats_rate = 30
         f = []
-        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 2 w/ 4k gaussian
+        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 3
         
-        f.append(["recordings\_LA_LB_Snippet16_Proc.wav", "8s"]) #72 80 w new PLL 74 w/o dc remove
+        f.append(["recordings\_LA_LB_Snippet16_Proc.wav", "8s"]) #92 kaiser=93
         #f.append(["recordings\long-beach-160-messages.wav", "8s"]) #Can't get to work
-        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #Needs input as int16 #4 10 w new PLL Need 162.025mhz?
+        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #16
         #f.append(["recordings\gnuais-stereo-2rx.raw", "16s"]) #Same file as above?, needs work.
         
-        #f.append(["2015-04-19-test-161975000-p45-s48k.raw", "8s"]) #15 12 w/ new PLL
-        #f.append(["2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #19 14 w/ new PLL
-        #f.append(["2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #17
-        #f.append(["2015-04-19-test-162025000-p50-s48k.raw", "8s"]) #35
+        #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8s"]) #13
+        #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #16
+        #f.append(["recordings\\2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #19
+        #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8s"]) #43
         
         SDR = radio.RtlReceiver(sample_rate, center_freq, gain, ppm, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
     else:    

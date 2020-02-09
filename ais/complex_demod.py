@@ -39,11 +39,11 @@ class ProcessSamples(Process):
         self.display_loop = 0 #Only used to limit the number of times that a matlibplot is displayed
         
         #Create initial filter properties
-        self.filter_type = 'gaussian'
+        self.filter_type = 'kaiser'
         
         if self.filter_type == 'gaussian':
-            cut_freq = 9.6 / 2.0 * 1.5 * 1000 
-            N = 33 #1201
+            cut_freq = 9.6 / 2.0 * 1.6 * 1000 
+            N = 33 #33
             sigma = sample_rate / (2 * np.pi * cut_freq)
             
             self.a = 1
@@ -56,6 +56,25 @@ class ProcessSamples(Process):
             self.a = 1
             self.b = scipy.signal.remez(N, [0, cut_freq, cut_freq + 200, 0.5*sample_rate], [1, 0],  fs = sample_rate)
             
+        elif self.filter_type == 'kaiser':
+            cut_freq = 9600 / 2.0 * 1.4 # 1.0:52 1.1: 1.2:94 1.3:95 1.4:95 1.5:93  1.6:
+            N = 300 # 5:88 50:93 100:93 200:93 250:95 300:97 400:95 500:94
+            beta = 8 #Beta for kaiser window 
+            self.a = 1
+            self.b = scipy.signal.firwin(N, cut_freq, window=('kaiser', beta), nyq = sample_rate / 2)
+            
+        elif self.filter_type == 'gnuais':
+            #filter coefficients from gnuais project
+            self.a = 1
+            self.b = (  2.5959e-55, 2.9479e-49, 1.4741e-43, 3.2462e-38, 3.1480e-33,
+                        1.3443e-28, 2.5280e-24, 2.0934e-20, 7.6339e-17, 1.2259e-13,
+                        8.6690e-11, 2.6996e-08, 3.7020e-06, 2.2355e-04, 5.9448e-03,
+                        6.9616e-02, 3.5899e-01, 8.1522e-01, 8.1522e-01, 3.5899e-01,
+                        6.9616e-02, 5.9448e-03, 2.2355e-04, 3.7020e-06, 2.6996e-08,
+                        8.6690e-11, 1.2259e-13, 7.6339e-17, 2.0934e-20, 2.5280e-24,
+                        1.3443e-28, 3.1480e-33, 3.2462e-38, 1.4741e-43, 2.9479e-49,
+                        2.5959e-55,)
+            
         else:
             cut_freq = 9 * 1000 
             #LA_LB 81 w/10 82 w/9 64 w/8 61 w/8.5 81 w/8.9 64 w/9.2 61 w/9.6
@@ -66,40 +85,6 @@ class ProcessSamples(Process):
             # 82 w/13 59 w/20 0 w/51 74 w/5 57 w/14 60w/12 74w/1 72w/2
             self.b, self.a = scipy.signal.butter(N, FC, btype = 'lowpass', analog = False)
         
-        # Create High and Low Matching Filters
-        # Initial Filter
-        cut_freq = cut_freq / 2
-        FC = cut_freq / (sample_rate) 
-        #print(FC)
-        N = 25      
-        self.bi, self.ai = scipy.signal.butter(N, [0,FC], btype = 'bandpass', analog = True)
-        
-        # Convert to higher
-        #self.bh, self.bh = scipy.signal.lp2lp(self.bi, self.ai, wo=1.0)
-        
-        # Convert to lower
-        #self.bl, self.bl = scipy.signal.lp2lp(self.bi, self.ai, wo=1.0)
-        
-        
-        
-        
-        #Uncomment to display filter graph
-        '''
-        # Initial filter
-        w, h = scipy.signal.freqz(self.b, fs = sample_rate)
-        #plt.plot(w, 20 * np.log10(abs(h)), 'b')
-        # Initial Filter
-        w, h = scipy.signal.freqz(self.bi, fs = sample_rate)
-        plt.plot(w, 20 * np.log10(abs(h)), 'r')
-        # High Filter
-        #w, h = scipy.signal.freqz(self.bh, fs = sample_rate)
-        #plt.plot(w, 20 * np.log10(abs(h)), 'r')
-        # Low Filter
-        #w, h = scipy.signal.freqz(self.bl, fs = sample_rate)
-        #plt.plot(w, 20 * np.log10(abs(h)), 'g')
-        plt.show()
-        sys.exit()
-        '''
         
         #Calculate initial filter values
         self.zi = scipy.signal.lfilter_zi(self.b, self.a)
@@ -111,7 +96,7 @@ class ProcessSamples(Process):
         self.samples_plot = np.zeros(1)
         
         ais_baud = 9600
-        samp_per_syb = sample_rate // self.decimate // ais_baud
+        samp_per_syb = int(sample_rate // self.decimate // ais_baud)
         print("Samples per symbol: {}".format(samp_per_syb))
         self.stream_A = PLL(self.channel, self.samples_A_filtered, samp_per_syb, self.send_q)
         
@@ -196,7 +181,7 @@ class PLL():
         self.channel = channel
         self.sample_queue = samples
         self.samp_sym = sps
-        self.out_queue = out
+        self.out_queue = out        
         
         self.small_step = 3 #0:49 1:79 2:88 3:92 4:88 5:87 6:69 7:70 8:63 9:56 10: 11: 12:
         self.step = 10
