@@ -1,7 +1,6 @@
 import argparse
 from multiprocessing import Pipe
 
-from ais import radio
 from ais import complex_demod as simple_demod
 from ais import message
 
@@ -21,27 +20,30 @@ if __name__ == "__main__":
     channel_B_bits_out, channel_B_bits_in = Pipe(False) 
     
     if args.from_file:
+        from ais import fileread
+        
         sample_rate = 48000
-        center_freq = 161.975 * 1e6 #161.975
-        gain = 18
-        ppm = 0
+        center_freq = 161.975 * 1e6 #161.975Mhz
         decimate = 1
         stats_rate = 30
         f = []
         #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 3
         
-        f.append(["recordings\_LA_LB_Snippet16_Proc.wav", "8s"]) #92 kaiser=93
-        #f.append(["recordings\long-beach-160-messages.wav", "8s"]) #Can't get to work
-        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #16
-        #f.append(["recordings\gnuais-stereo-2rx.raw", "16s"]) #Same file as above?, needs work.
+        #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #kaiser=98
+        #f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
+        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #46
+        f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above : 61 total
         
         #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8s"]) #13
         #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #16
         #f.append(["recordings\\2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #19
-        #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8s"]) #43
+        #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #43
         
-        SDR = radio.RtlReceiver(sample_rate, center_freq, gain, ppm, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
-    else:    
+        #SDR = radio.RtlReceiver(sample_rate, center_freq, gain, ppm, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
+        SDR = fileread.FromFile(sample_rate, center_freq, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
+    else: 
+        from ais import radio
+        
         sample_rate = 1.2288 * 1e6 
         if args.satellite:
             center_freq = 156.8 * 1e6

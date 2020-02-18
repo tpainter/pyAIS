@@ -42,8 +42,8 @@ class ProcessSamples(Process):
         self.filter_type = 'kaiser'
         
         if self.filter_type == 'gaussian':
-            cut_freq = 9.6 / 2.0 * 1.6 * 1000 
-            N = 33 #33
+            cut_freq = 9600 / 2.0 * 1.7 #    1.0:80 1.1:87 1.2:93 1.3:92 1.4:88 1.5:92  1.6:93 1.7:95 1.8:93 1.9:89 2.0:91
+            N = 50 #       10:92 33:90 40:92 50:93 75:90 100:92 200:92 300:91
             sigma = sample_rate / (2 * np.pi * cut_freq)
             
             self.a = 1
@@ -57,10 +57,11 @@ class ProcessSamples(Process):
             self.b = scipy.signal.remez(N, [0, cut_freq, cut_freq + 200, 0.5*sample_rate], [1, 0],  fs = sample_rate)
             
         elif self.filter_type == 'kaiser':
-            cut_freq = 9600 / 2.0 * 1.4 # 1.0:52 1.1: 1.2:94 1.3:95 1.4:95 1.5:93  1.6:
-            N = 300 # 5:88 50:93 100:93 200:93 250:95 300:97 400:95 500:94
-            beta = 8 #Beta for kaiser window 
-            self.a = 1
+            #Before fiddling: 1.4, 300, 8
+            cut_freq = 9600 / 2.0 * 1.4 # 1.0:68 1.1:89 1.2:91 1.3:93 1.4:98 1.5:93  1.6:96
+            N = 100 # 5:90 50:90 75:91 100:96 150:96 200:95 250:94 300: 400: 500:
+            beta = 9 #Beta for kaiser window 1:91 5:94 7:96 8:96 9:98 10:95 14:94
+            self.a = 1.0
             self.b = scipy.signal.firwin(N, cut_freq, window=('kaiser', beta), nyq = sample_rate / 2)
             
         elif self.filter_type == 'gnuais':
@@ -101,15 +102,6 @@ class ProcessSamples(Process):
         self.stream_A = PLL(self.channel, self.samples_A_filtered, samp_per_syb, self.send_q)
         
         
-        #Create a filter for the demodulated signal
-        baud = 9600
-        cut_freq = baud * 2
-        fs = sample_rate
-        N = 3
-        self.pb, self.pa = scipy.signal.butter(N, cut_freq, btype = 'lowpass', analog = False, fs = fs)
-        #Calculate initial filter values
-        self.pzi = scipy.signal.lfilter_zi(self.pb, self.pa)
-        
 
     def run(self):
         print("Starting filtering...")
@@ -148,23 +140,26 @@ class ProcessSamples(Process):
             #self.samples_A_filtered.append(self.samples)
             self.samples_A_filtered.append(scipy.signal.decimate(a_full, self.decimate, zero_phase = True))
             
-            if self.channel == 'x':
+            if self.channel == 'B':
                 #self.samples_plot = np.append(self.samples_plot, scipy.signal.decimate(a_full, self.decimate, zero_phase = True))
                 #self.samples_plot = np.append(self.samples_plot, self.samples)
                 
-                p = np.angle(self.samples_A_filtered[0])                
-                p_filtered, self.pzi = scipy.signal.lfilter(self.pb, self.pa, np.diff(p), zi = self.pzi)                 
-                '''
-                plt.subplot(3, 1, 1)
-                plt.scatter(np.real(self.samples), np.imag(self.samples))
-                plt.subplot(3, 1, 2)
-                plt.plot(np.abs(self.samples_A_filtered[0])**2)
-                plt.subplot(3, 1, 3)
-                plt.plot(self.sample_rate * np.diff(np.angle(self.samples_A_filtered[0])))
+                p = np.angle(self.samples_A_filtered[0])
+                
+                
+                #plt.subplot(3, 1, 1)
+                #plt.scatter(np.real(self.samples), np.imag(self.samples))
+                #plt.scatter(range(len(self.samples)), np.imag(self.samples))
+                #plt.scatter(range(len(self.samples)), np.real(self.samples))
+                #plt.subplot(3, 1, 2)
+                #plt.plot(np.abs(self.samples_A_filtered[0])**2)
+                #plt.subplot(3, 1, 3)
+                #plt.plot(self.sample_rate/np.pi/2 * np.diff(np.angle(self.samples_A_filtered[0])))
+                #plt.plot(p)
                 #plt.pause(0.05)
                 #plt.show()
-                plt.clf()
-                '''
+                #plt.clf()
+                
                 
             
             
@@ -206,7 +201,14 @@ class PLL():
             while self.run_flag:
                 chunk = self.sample_queue.popleft()
                 # Convert to phase
-                p = np.angle(chunk)
+                #p = np.angle(chunk)
+                #p = np.imag(chunk)
+                p = chunk
+                
+                #y5 = chunk[1:] * np.conj(chunk[:-1])  
+                #p = np.angle(y5)/(2*np.pi)               
+                #plt.plot(p)
+                #plt.show()
                     
                 for s in p:
                     phase = s
