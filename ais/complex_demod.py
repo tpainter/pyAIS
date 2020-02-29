@@ -34,9 +34,8 @@ class ProcessSamples(Process):
         self.channel = channel
         self.decimate = decimate    
 
-        self.run_flag = True   
-
-        self.display_loop = 0 #Only used to limit the number of times that a matlibplot is displayed
+        self.run_flag = True
+        ais_baud = 9600
         
         #Create initial filter properties
         self.filter_type = 'kaiser'
@@ -92,11 +91,8 @@ class ProcessSamples(Process):
         
         self.samples = np.zeros(1024, dtype=np.complex64)
         self.samples_A = []
-        self.samples_A_filtered = deque()
+        self.samples_A_filtered = deque()        
         
-        self.samples_plot = np.zeros(1)
-        
-        ais_baud = 9600
         samp_per_syb = int(sample_rate // self.decimate // ais_baud)
         print("Samples per symbol: {}".format(samp_per_syb))
         self.stream_A = PLL(self.channel, self.samples_A_filtered, samp_per_syb, self.send_q)
@@ -140,7 +136,7 @@ class ProcessSamples(Process):
             #self.samples_A_filtered.append(self.samples)
             self.samples_A_filtered.append(scipy.signal.decimate(a_full, self.decimate, zero_phase = True))
             
-            if self.channel == 'B':
+            if self.channel == 'x':
                 #self.samples_plot = np.append(self.samples_plot, scipy.signal.decimate(a_full, self.decimate, zero_phase = True))
                 #self.samples_plot = np.append(self.samples_plot, self.samples)
                 
@@ -178,8 +174,8 @@ class PLL():
         self.samp_sym = sps
         self.out_queue = out        
         
-        self.small_step = 3 #0:49 1:79 2:88 3:92 4:88 5:87 6:69 7:70 8:63 9:56 10: 11: 12:
-        self.step = 10
+        self.small_step = 3 
+        self.step = 10 
         self.max = self.step * sps
         self.mid = self.max / 2
         self.offset = 0
@@ -195,7 +191,7 @@ class PLL():
         
         
         
-    def pll(self): #testing
+    def pll(self): 
         try:
             out = bitstring.BitArray()
             while self.run_flag:
@@ -261,61 +257,3 @@ class PLL():
             print(str(e))
             pass
             
-    def pll_working(self): #working
-        try:
-            out = bitstring.BitArray()
-            while self.run_flag:
-                chunk = self.sample_queue.popleft()
-                # Convert to phase
-                p = np.angle(chunk)
-                    
-                for s in p:
-                    phase = s
-                    
-                    if phase > 0:
-                        self.current = 1
-                    else:
-                        self.current = 0
-                    
-                    self.last_samples.append(self.current)
-                    
-                    self.offset += self.step
-                    
-                    if (self.prev ^ self.current):
-                        #Phase change                        
-                        if self.offset > self.mid:
-                            self.offset -= self.small_step
-                        elif self.offset < self.mid:
-                            self.offset += self.small_step
-                        else:
-                            pass
-                            
-                        
-                        
-                    if self.offset >= self.max:                        
-                        #Instead of current value, use average of last values
-                        avg = np.average(self.last_samples)
-                        
-                        if avg > 0.49:
-                            self.current = 1
-                            out.append('0b1')
-                        else:
-                            self.current = 0
-                            out.append('0b0')
-                        
-                        self.offset -= self.max
-                            
-                    self.prev = self.current
-                
-                if out:
-                    self.out_queue.send(out)
-                    out.clear()
-        
-        except IndexError:
-            #empty dequeue
-            pass
-        
-        except Exception as e:
-            #Other exceptions
-            print(str(e))
-            pass

@@ -15,7 +15,7 @@ class FromFile(Process):
         
         self.sample_rate = sample_rate
         self.center_freq = center_freq
-        self.async_sample_size = 1024 #default 
+        self.async_sample_size = 1024 * 16
         self.sdr_out_A = sdr_out_A
         self.sdr_out_B = sdr_out_B
         self.local_file = local_file
