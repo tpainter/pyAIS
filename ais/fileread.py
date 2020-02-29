@@ -105,7 +105,17 @@ class FromFile(Process):
                     print(e)
                 
                 raw_audio = x.astype(np.float64)
-            
+            #Process *.num files seperately. They are test files form gnuais
+            elif f[0].endswith(".num"):
+                try:
+                    print("Processing *.num file.")
+                    x = np.loadtxt(f[0])
+                    print(x)
+                except Exception as e:
+                    print("Error reading NUM file.")
+                    print(e)
+                
+                raw_audio = x.astype(np.float64)
             elif f[1] == "8u":
                 ### 8 bit unsigned input
                 x = np.fromfile(f[0], np.uint8)
