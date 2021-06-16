@@ -23,22 +23,22 @@ if __name__ == "__main__":
         from ais import fileread
         
         sample_rate = 48000
-        center_freq = 161.975 * 1e6 #161.975Mhz
+        center_freq = 161.975 * 1e6 #161.975Mhz 162.025
         decimate = 1
         stats_rate = 30
         f = []
         #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 3
         
         #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #kaiser=98
-        f.append(["recordings\\1.num"])
+        #f.append(["recordings\\1.num"])
         #f.append(["recordings\\2.num"])
         #f.append(["recordings\\3.num"])
         #f.append(["recordings\\4.num"])
-        #f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
-        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #46
+        f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
+        f.append(["recordings\helsinki-210-messages.raw", "16s"]) #46
         #f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above : 61 total
         
-        #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8s"]) #13
+        #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8u"]) #13
         #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #16
         #f.append(["recordings\\2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #19
         #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #43

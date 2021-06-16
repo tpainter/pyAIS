@@ -43,13 +43,7 @@ class ProcessAISBits(Process):
                 #Get bits from pipe
                 try:
                     r = self.input_bits.recv()
-                    '''if r == "PIPE_END_FLAG":
-                        print("Pipe closed.")
-                        print("Messages closing...")
-                        self.run_flag = False
-                        break
-                    '''
-                    self.receive_buffer.append(r)
+                    self.receive_buffer = r
                 except EOFError:
                     #pipe has been closed
                     print("Pipe closed.")
@@ -63,8 +57,6 @@ class ProcessAISBits(Process):
                 pass
                
             self.decoded_bits.append(self.decode_NRZI(self.receive_buffer, self.last_nrzi))
-            
-            
             self.receive_buffer.clear()            
             
             #Search for start/stop flag
@@ -79,14 +71,11 @@ class ProcessAISBits(Process):
             
             #Clear out bits that have been searched
             if previous is not None:
-                del self.decoded_bits[:previous]
-               
-            #AIS message frame is 256 bits. Max message is over 5 frames. If  
-            # we have more bits than this, we can discard.
-            if len(self.decoded_bits) > 256 * 5:
-                m = len(self.decoded_bits) / 256
-                print("Culling bits ({})...".format(self.channel))
-                del self.decoded_bits[:256*m]
+                self.decoded_bits = self.decoded_bits[previous:]
+            else:               
+                #AIS message frame is 256 bits. Max message is over 5 frames. If  
+                # we have more bits than this, we can discard.
+                self.decoded_bits.clear()
             
             for m in self.possible_msg:
                 ais_unstuff = bit_destuff(m)
@@ -95,10 +84,14 @@ class ProcessAISBits(Process):
                 ais_msb = lsb_msb(ais_unstuff)
 
                 #check message length
+                # Ignore this check for now. It looks like it is too strict. 
+                # TODO
+                #
                 if not check_ais_length(ais_msb):
                     #print("AIS length check failled")
-                    self.msg_invalid_length += 1
-                    continue
+                    #self.msg_invalid_length += 1
+                    #continue
+                    pass
                 
                 #check AIS crc (hdlc)
                 if not check_ais_crc(ais_unstuff):
@@ -128,8 +121,6 @@ class ProcessAISBits(Process):
     def decode_NRZI(self, NRZI, start = True):
         """ Used to decode NRZI bits
         """
-        
-        #TODO: Make output bistring.BitArray
         
         out = [None] * len(NRZI)
         last = start

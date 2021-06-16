@@ -15,7 +15,7 @@ class FromFile(Process):
         
         self.sample_rate = sample_rate
         self.center_freq = center_freq
-        self.async_sample_size = 1024 * 16
+        self.async_sample_size = 1024 * 4
         self.sdr_out_A = sdr_out_A
         self.sdr_out_B = sdr_out_B
         self.local_file = local_file
@@ -90,13 +90,15 @@ class FromFile(Process):
                     print("*.wav file samplerate: {}".format(rate))
                     self.sample_rate = rate
                     
-                    #Check whether the sampes are one or two bytes wide.
+                    #Check whether the samples are one or two bytes wide.
                     bytes = fd.getsampwidth()
                     if bytes == 1:
                         x = np.fromstring(xb, np.int8)
+                        x = x / 127.5
                         print("*.wav file sample size: int8")
                     else:
                         x = np.fromstring(xb, np.int16)
+                        x = x / (2 ** 15 - 0.5)
                         print("*.wav file sample size: int16")
                     
                     fd.close()
@@ -120,34 +122,40 @@ class FromFile(Process):
                 ### 8 bit unsigned input
                 x = np.fromfile(f[0], np.uint8)
                 raw_audio = x.astype(np.float64).view(np.complex128)
-                raw_audio /= 127.5
-                raw_audio -= (1+ 1j)
+                raw_audio /= 127.5                
+                raw_audio -= (1+ 1j)                
             elif f[1] == "8s":
                 ### 8 bit signed input
-                x = np.fromfile(f[0], np.int8)
+                x = np.fromfile(f[0], np.int8) 
+                x = x / (2 ** 7)
                 raw_audio = x.astype(np.float64).view(np.complex128)
+                #print(np.max(np.real(raw_audio)))
             elif f[1] == "16u":
                 ##16bit unsigned input                    
                 x = np.fromfile(f[0], np.uint16)
                 raw_audio = x.astype(np.float64).view(np.complex128)
-                raw_audio /= 2**16 / 2 - 0.5
+                raw_audio /= 2**15 - 0.5
                 raw_audio -= (1+1j)
             elif f[1] == "16s":    
                 ##16bit signed input
                 x = np.fromfile(f[0], np.int16)
+                x = x / (2 ** 15)
                 raw_audio = x.astype(np.float64).view(np.complex128)
+                #raw_audio -= (1+1j)
+                #print(np.max(np.real(raw_audio)))
             elif f[1] == "16d":    
                 ##16bit signed input
                 self.channels = 2
                 x = np.fromfile(f[0], np.int16)
+                
                 #raw_audio = x.astype(np.float64).view(np.complex128)
                 raw_audio = x
             else:
                 print("Unsupported sample type.")
             
-            
-            for i in range(0, len(raw_audio), self.async_sample_size * self.channels):
-                self.send_samples(raw_audio[i: i + self.async_sample_size * self.channels])
+            for i in range(0, int(len(raw_audio) / self.async_sample_size * self.channels) + 1):
+                self.send_samples(raw_audio[i * self.async_sample_size * self.channels: (i + 1) * self.async_sample_size * self.channels])
+                
         
         print("All samples stored.")
         time.sleep(1)
