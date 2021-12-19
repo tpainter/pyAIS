@@ -17,7 +17,7 @@ class RtlReceiver(Process):
         self.center_freq = center_freq
         self.gain = gain
         self.freq_correction = ppm
-        self.async_sample_size = 1024 #default 
+        self.async_sample_size = 1024 * 24 #default 1024
         self.sdr_out_A = sdr_out_A
         self.sdr_out_B = sdr_out_B
         self.decimate = decimate
@@ -53,7 +53,7 @@ class RtlReceiver(Process):
         #Frequency shift
         shifted_A = samples * self.fc1_A
         shifted_B = samples * self.fc1_B
-        
+                
         self.sdr_out_A.send(shifted_A)
         self.sdr_out_B.send(shifted_B) 
         
@@ -73,7 +73,7 @@ class RtlReceiver(Process):
         
         #try for some extra filtering
         try:
-            self.sdr.bandwidth = (.350 * 1e6)
+            #self.sdr.bandwidth = (.350 * 1e6)
             pass
         except IOError:
             print("No bandwidth adjustment availible.")

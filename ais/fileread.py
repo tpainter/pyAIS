@@ -15,7 +15,7 @@ class FromFile(Process):
         
         self.sample_rate = sample_rate
         self.center_freq = center_freq
-        self.async_sample_size = 1024 * 4
+        self.async_sample_size = 1024 * 2
         self.sdr_out_A = sdr_out_A
         self.sdr_out_B = sdr_out_B
         self.local_file = local_file
@@ -153,6 +153,9 @@ class FromFile(Process):
             else:
                 print("Unsupported sample type.")
             
+            if self.channels == 1:
+                self.sdr_out_B.close()
+                
             for i in range(0, int(len(raw_audio) / self.async_sample_size * self.channels) + 1):
                 self.send_samples(raw_audio[i * self.async_sample_size * self.channels: (i + 1) * self.async_sample_size * self.channels])
                 

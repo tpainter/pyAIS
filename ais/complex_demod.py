@@ -33,14 +33,65 @@ class ProcessSamples(Process):
         self.sample_rate = sample_rate
         self.Ts = 1 / self.sample_rate
         self.channel = channel
-        self.decimate = decimate    
+        self.decimate = decimate  
+        
+        if self.decimate == 1:
+            self.decimate1 = 1
+            self.decimate2 = 1
+            self.b_deci = [0,0,0]
+            self.a_deci = [0,0,0]
+            self.zi_deci = [0,0,0]
+            self.keep = [0, 0, 0,]
+            
+            # Simple filter for continuous decimation        
+            n = 8
+            #system = scipy.signal.dlti(scipy.signal.filter_design.cheby1(n, 0.05, 0.8 / self.decimate1))
+            system = scipy.signal.dlti(*scipy.signal.filter_design.cheby1(n, 0.05, 0.8 / self.decimate1))
+            self.b_deci[1], self.a_deci[1] = system.num, system.den
+            self.b_deci[2], self.a_deci[2] = system.num, system.den
+            
+            #Calculate initial filter values
+            self.zi_deci[1] = scipy.signal.lfilter_zi(self.b_deci[1], self.a_deci[1])
+            self.zi_deci[2] = scipy.signal.lfilter_zi(self.b_deci[2], self.a_deci[2])
+            
+            #Samples that need to be kept between runs
+            self.keep[1] = 0
+            self.keep[2] = 0
+        elif self.decimate == 25:
+            self.decimate1 = 5
+            self.decimate2 = 5
+            self.b_deci = [0,0,0]
+            self.a_deci = [0,0,0]
+            self.zi_deci = [0,0,0]
+            self.keep = [0, 0, 0,]
+            
+            # Simple filter for continuous decimation        
+            n = 8
+            #system = scipy.signal.dlti(scipy.signal.filter_design.cheby1(n, 0.05, 0.8 / self.decimate1))
+            system = scipy.signal.dlti(*scipy.signal.filter_design.cheby1(n, 0.05, 0.8 / self.decimate1))
+            self.b_deci[1], self.a_deci[1] = system.num, system.den
+            self.b_deci[2], self.a_deci[2] = system.num, system.den
+            
+            #Calculate initial filter values
+            self.zi_deci[1] = scipy.signal.lfilter_zi(self.b_deci[1], self.a_deci[1])
+            self.zi_deci[2] = scipy.signal.lfilter_zi(self.b_deci[2], self.a_deci[2])
+            
+            #Samples that need to be kept between runs
+            self.keep[1] = 0
+            self.keep[2] = 0
+        else:
+            print("Unable to process decimation. Stopping...")
+            sys.exit
 
         self.run_flag = True
         ais_baud = 9600
         
+        #Keep track of frequency offset
+        self.frequency_correction = 0.0
+        
         # Mueller and Muller Timing Recovery
         #Modify this factor
-        self.mm_factor = 0.5 #0.3
+        self.mm_factor = 0.1 #0.1 0.5best
         self.mu = 0
         self.mueller_index = 0 #skip inputs on next process chunk
         self.mueller_out = [0, 0] # output index (let first two outputs be 0)
@@ -49,8 +100,8 @@ class ProcessSamples(Process):
         # Costas Loop PLL
         # Fine frequency syncronization from pysdr.org
         #Modify alpha and beta
-        self.pll_alpha = 1.5 #0.132
-        self.pll_beta = 0.009 # 0.00932
+        self.pll_alpha = 0.9 #0.132 1.5best
+        self.pll_beta = 0.009 # 0.009best
         self.pll_phase = 0
         self.pll_freq = 0
         
@@ -60,17 +111,17 @@ class ProcessSamples(Process):
         if self.filter_type == 'gaussian':
             cut_freq = 9600 / 2.0 * 1.2 #    0.9:184 1.0:178 1.1:179 1.2:202 1.3:171 1.4:176 1.5:154  1.6:148 1.7:128 1.8:138 1.9:123 2.0:128
             N = 15 
-            sigma = sample_rate / (2 * np.pi * cut_freq)
+            sigma = self.sample_rate / self.decimate / (2 * np.pi * cut_freq)
             
             self.a = 1
-            self.b = scipy.signal.firwin(N, cut_freq, window = ('gaussian', sigma), pass_zero = True, nyq = sample_rate / 2)
+            self.b = scipy.signal.firwin(N, cut_freq, window = ('gaussian', sigma), pass_zero = True, nyq = sample_rate / self.decimate / 2)
             
         elif self.filter_type == 'remez':
             cut_freq = 9600 / 2.0 * 1.2
             N = 250
             
             self.a = 1
-            self.b = scipy.signal.remez(N, [0, cut_freq, cut_freq + 200, 0.5*sample_rate], [1, 0],  fs = sample_rate)
+            self.b = scipy.signal.remez(N, [0, cut_freq, cut_freq + 200, 0.5*sample_rate / self.decimate], [1, 0],  fs = sample_rate / self.decimate)
             
         elif self.filter_type == 'kaiser':
             #Before fiddling: 1.4, 300, 8
@@ -78,7 +129,7 @@ class ProcessSamples(Process):
             N = 100 # 5:90 50:90 75:91 100:96 150:96 200:95 250:94 300: 400: 500:
             beta = 9 #Beta for kaiser window 1:91 5:94 7:96 8:96 9:98 10:95 14:94
             self.a = 1.0
-            self.b = scipy.signal.firwin(N, cut_freq, window=('kaiser', beta), nyq = sample_rate / 2)
+            self.b = scipy.signal.firwin(N, cut_freq, window=('kaiser', beta), nyq = sample_rate / self.decimate / 2)
             
         elif self.filter_type == 'gnuais':
             #filter coefficients from gnuais project
@@ -93,28 +144,51 @@ class ProcessSamples(Process):
                         2.5959e-55,)
             
         else:
-            cut_freq = 9600 /2.0 * 1.2 
+            cut_freq = 9600 / 2.0 * 1.2 
             #LA_LB 81 w/10 82 w/9 64 w/8 61 w/8.5 81 w/8.9 64 w/9.2 61 w/9.6
             #Helsinki 0 w/9 0 w/20
             #5/4/19 36 w/20 37 w/9 37 w/8
-            FC = cut_freq / (sample_rate / 2)
+            FC = cut_freq / (sample_rate / self.decimate / 2)
             N = 31
             # 82 w/13 59 w/20 0 w/51 74 w/5 57 w/14 60w/12 74w/1 72w/2
             self.b, self.a = scipy.signal.butter(N, FC, btype = 'lowpass', analog = False)
+            
+        
         
         
         #Calculate initial filter values
         self.zi = scipy.signal.lfilter_zi(self.b, self.a)
         
-        self.samples_A = []
-        self.samples_A_filtered = deque()        
-        
         self.samp_per_syb = int(sample_rate // self.decimate // ais_baud)
-        print("Samples per symbol: {}".format(self.samp_per_syb))
-        #self.stream_A = PLL(self.channel, self.samples_A_filtered, samp_per_syb, self.send_q)
+        print("Samples per symbol: {}".format(self.samp_per_syb))        
         
         
+############################################################################################
 
+    def decimate_cont(self, samples, deci_num, run_num):
+        """
+        Modification to the scipy decimate function that doesn't introduce artifacts at chunk boundaries.
+        """
+        
+        #Adjust starting sample to include based on where previous runs ended
+        if self.keep[run_num] == 0:
+            pass
+        else:
+            samples = samples[deci_num - self.keep[run_num]:]
+        
+        #Filter before decimating
+        samples_filtered, self.zi_deci[run_num] = scipy.signal.lfilter(self.b_deci[run_num], self.a_deci[run_num], samples, zi = self.zi_deci[run_num])
+        
+        #Figure out number of samples at end that are cut off
+        n = len(samples) % deci_num
+        self.keep[run_num] = n
+        
+        return samples_filtered[::deci_num]
+        
+        
+    
+############################################################################################
+    
     def mueller(self, samples):
         # Mueller and Muller timing recovery
         # from https://www.pysdr.org
@@ -136,7 +210,9 @@ class ProcessSamples(Process):
         self.mueller_out = self.mueller_out[-2:] # keep last two values to start next processing of samples
         self.mueller_out_rail = self.mueller_out_rail[-2:] # keep last two values to start next processing of samples
         return out
-    
+
+##################################################################################################
+
     def costas(self, symbol_samples): 
         # PLL via costas loop
         # from https://www.pysdr.org
@@ -153,7 +229,7 @@ class ProcessSamples(Process):
             self.pll_freq += (self.pll_beta * error)
             self.pll_phase += self.pll_freq + (self.pll_alpha * error)
 
-            # Optional: Adjust phase so its always between 0 and 2pi, recall that phase wraps around every 2pi
+            # Adjust phase so its always between 0 and 2pi
             while self.pll_phase >= 2*np.pi:
                 self.pll_phase -= 2*np.pi
             while self.pll_phase < 0:
@@ -178,7 +254,8 @@ class ProcessSamples(Process):
             plt.clf()
                 
         return out
-            
+  
+#################################################################################################  
     def run(self):
         print("Starting filtering...")
         while self.run_flag:
@@ -200,28 +277,38 @@ class ProcessSamples(Process):
                 continue
             
                         
-            a_full, self.zi = scipy.signal.lfilter(self.b, self.a, self.samples, zi = self.zi)                
-                        
-            #Do coarse frequency syncronization from pysdr.org
+            #Apply frequency correction
+            t = np.arange(0, self.Ts*len(self.samples), self.Ts)            
+            self.samples = self.samples * np.exp(-1j*2*np.pi*self.frequency_correction*t/2.0)
             
-            samples_sqr = a_full**2
+            #Do coarse frequency syncronization from pysdr.org
+            samples_sqr = self.samples**2
             psd = np.fft.fftshift(np.abs(np.fft.fft(samples_sqr)))
             f = np.linspace(-self.sample_rate/2.0, self.sample_rate/2.0, len(psd))            
-            max_freq = f[np.argmax(psd)]
+            max_freq = f[np.argmax(psd)]  
             
-            t = np.arange(0, self.Ts*len(self.samples), self.Ts) # create time vector
+            #Update frequency correction. Slowly adjust amount
+            ##Seems to cause more trouble than it solves. TODO
+            #self.frequency_correction += 0.1 * max_freq
+            #self.frequency_correction = max_freq
+            
             # TODO This is very sensitive to number of samples inspected at once.
-            #a_full = a_full * np.exp(-1j*2*np.pi*max_freq*t/2.0)
+            #print("Channel {} Frequency Offset: {}".format(self.channel, max_freq))
             
-            if False and self.channel == 'A':
-                plt.plot(f, psd)
-                plt.ylim(0, 200)
-                plt.pause(0.05)
-                plt.clf()
+            # Decimate
+            #self.samples = scipy.signal.decimate(self.samples, self.decimate, zero_phase = True)
+            if self.decimate == 1:
+                #pass
+                #Decimate in two passes
+                self.samples = self.decimate_cont(self.samples, self.decimate1, 1)
+                self.samples = self.decimate_cont(self.samples, self.decimate2, 2)
+            else:
+                #Decimate in two passes
+                self.samples = self.decimate_cont(self.samples, self.decimate1, 1)
+                self.samples = self.decimate_cont(self.samples, self.decimate2, 2)
             
-            
-            #chunk = self.samples
-            chunk = scipy.signal.decimate(a_full, self.decimate, zero_phase = True)
+            # Filter
+            chunk, self.zi = scipy.signal.lfilter(self.b, self.a, self.samples, zi = self.zi)
             
             # do mueller and muller
             symbol_samples = self.mueller(chunk)
@@ -240,3 +327,5 @@ class ProcessSamples(Process):
             
         print("Stopping filtering ...")
         
+        
+

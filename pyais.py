@@ -1,7 +1,7 @@
 import argparse
 from multiprocessing import Pipe
 
-from ais import complex_demod as simple_demod
+from ais import complex_demod as demod
 from ais import message
 
 
@@ -27,39 +27,40 @@ if __name__ == "__main__":
         decimate = 1
         stats_rate = 30
         f = []
-        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8s"]) # 3
+        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8u"]) # 3
         
-        #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #kaiser=98
+        
         #f.append(["recordings\\1.num"])
         #f.append(["recordings\\2.num"])
         #f.append(["recordings\\3.num"])
         #f.append(["recordings\\4.num"])
-        f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
-        f.append(["recordings\helsinki-210-messages.raw", "16s"]) #46
-        #f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above : 61 total
+        #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #
+        #f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
+        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) 
+        #f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above 
         
         #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8u"]) #13
         #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #16
         #f.append(["recordings\\2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #19
-        #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #43
+        f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #43
         
         SDR = fileread.FromFile(sample_rate, center_freq, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
     else: 
         from ais import radio
         
-        sample_rate = 1.2288 * 1e6 
+        sample_rate = 1.2 * 1e6 
         if args.satellite:
             center_freq = 156.8 * 1e6
         else:
             center_freq = 162.0 * 1e6
-        gain = 21 #20.7 #33.8 #12.5 #14.4 #15.7 #18
-        ppm = 0 #65 #66
-        decimate = 8 #32   
-        stats_rate = 2*60     
+        gain = 12.5 #21 #20.7 #33.8 #12.5 #14.4 #15.7 #18
+        ppm = 0 
+        decimate = 25   
+        stats_rate = 1 * 60     
         SDR = radio.RtlReceiver(sample_rate, center_freq, gain, ppm, channel_A_samples_in, channel_B_samples_in, decimate, satellite = args.satellite)
         
-    Demod_A = simple_demod.ProcessSamples(sample_rate, 'A', decimate, channel_A_samples_out, channel_A_bits_in)
-    Demod_B = simple_demod.ProcessSamples(sample_rate, 'B', decimate, channel_B_samples_out, channel_B_bits_in)
+    Demod_A = demod.ProcessSamples(sample_rate, 'A', decimate, channel_A_samples_out, channel_A_bits_in)
+    Demod_B = demod.ProcessSamples(sample_rate, 'B', decimate, channel_B_samples_out, channel_B_bits_in)
     AIS_a = message.ProcessAISBits("A", channel_A_bits_out, stats_rate)
     AIS_b = message.ProcessAISBits("B", channel_B_bits_out, stats_rate)
     

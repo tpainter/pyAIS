@@ -34,12 +34,13 @@ class ProcessAISBits(Process):
         self.msg_decode = 0
         self.msg_invalid_crc = 0
         self.msg_invalid_length = 0
+        self.msg_found_flag = 0
         
         
     def run(self):
         print("Starting message processing {}...".format(self.channel))
         while self.run_flag:            
-            if self.input_bits.poll(1.0):                 
+            if self.input_bits.poll(0.1):                 
                 #Get bits from pipe
                 try:
                     r = self.input_bits.recv()
@@ -62,6 +63,7 @@ class ProcessAISBits(Process):
             #Search for start/stop flag
             previous = None
             for f in self.decoded_bits.findall(self.hdlc_flag):
+                self.msg_found_flag += 1
                 if previous is not None:
                     #Locations are at begining of flag. This copies bits without flags at ends.
                     self.possible_msg.append(self.decoded_bits[previous+8: f])
@@ -110,12 +112,14 @@ class ProcessAISBits(Process):
             #Diplay stats
             if self.display_stats is not None:
                 if time.time() > self.stat_last + self.display_stats:
-                    print("Channel {} Messages - Bad Length: {}, Bad CRC: {}, Good: {}".format(self.channel, self.msg_invalid_length, self.msg_invalid_crc, self.msg_decode))
+                    print("Channel {} Messages - Flag Found: {}, Bad Length: {}, Bad CRC: {}, Good: {}".format(self.channel, self.msg_found_flag ,self.msg_invalid_length, self.msg_invalid_crc, self.msg_decode))
                     self.stat_last = time.time()
             
             
             #Sleep before running loop again.
             time.sleep(0.001)
+        
+        print("Message Processing Channel {} Stopped...".format(self.channel))
              
                 
     def decode_NRZI(self, NRZI, start = True):
