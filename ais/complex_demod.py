@@ -114,7 +114,7 @@ class ProcessSamples(Process):
             sigma = self.sample_rate / self.decimate / (2 * np.pi * cut_freq)
             
             self.a = 1
-            self.b = scipy.signal.firwin(N, cut_freq, window = ('gaussian', sigma), pass_zero = True, nyq = sample_rate / self.decimate / 2)
+            self.b = scipy.signal.firwin(N, cut_freq, window = ('gaussian', sigma), pass_zero = True, fs = sample_rate / self.decimate )
             
         elif self.filter_type == 'remez':
             cut_freq = 9600 / 2.0 * 1.2
