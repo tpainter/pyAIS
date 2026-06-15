@@ -93,11 +93,11 @@ class FromFile(Process):
                     #Check whether the samples are one or two bytes wide.
                     bytes = fd.getsampwidth()
                     if bytes == 1:
-                        x = np.fromstring(xb, np.int8)
+                        x = np.frombuffer(xb, np.int8)
                         x = x / 127.5
                         print("*.wav file sample size: int8")
                     else:
-                        x = np.fromstring(xb, np.int16)
+                        x = np.frombuffer(xb, np.int16)
                         x = x / (2 ** 15 - 0.5)
                         print("*.wav file sample size: int16")
                     
