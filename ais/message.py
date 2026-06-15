@@ -40,7 +40,7 @@ class ProcessAISBits(Process):
     def run(self):
         print("Starting message processing {}...".format(self.channel))
         while self.run_flag:            
-            if self.input_bits.poll(0.1):                 
+            if self.input_bits.poll(timeout=5):
                 #Get bits from pipe
                 try:
                     r = self.input_bits.recv()
@@ -55,7 +55,10 @@ class ProcessAISBits(Process):
                     self.run_flag = False
                     continue     
             else:
-                pass
+                #If no data has been received in 5 seconds, assume connection is dead.
+                self.run_flag = False
+                print("reached end of poll in messages {}".format(self.channel))
+                continue
                
             self.decoded_bits.append(self.decode_NRZI(self.receive_buffer, self.last_nrzi))
             self.receive_buffer.clear()            
@@ -120,7 +123,8 @@ class ProcessAISBits(Process):
             time.sleep(0.001)
         
         print("Message Processing Channel {} Stopped...".format(self.channel))
-             
+        print("Final Stats:")
+        print("Channel {} Messages - Flag Found: {}, Bad Length: {}, Bad CRC: {}, Good: {}".format(self.channel, self.msg_found_flag ,self.msg_invalid_length, self.msg_invalid_crc, self.msg_decode))
                 
     def decode_NRZI(self, NRZI, start = True):
         """ Used to decode NRZI bits

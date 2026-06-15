@@ -259,22 +259,28 @@ class ProcessSamples(Process):
     def run(self):
         print("Starting filtering...")
         while self.run_flag:
+            if self.sdr_in.poll(timeout=5):
+                #If no data has been received in 5 seconds, assume connection is dead.
+                pass
+            else:
+                self.run_flag = False
+                print("reached end of poll in Complex_demod {}".format(self.channel))
+                continue
             try:
                 #will block until there is something to receive
                 r = self.sdr_in.recv()
                 self.samples = r
             except EOFError:
                 #pipe was closed
-                self.run_flag = False  
-                self.stream_A.run_flag = False
-                #self.send_q.send("PIPE_END_FLAG")
+                self.run_flag = False 
+                print("reached EOF in Complex_demod.")
                 continue
             except Exception as e:
                 #any other error is unexpected
                 print("Pipe error...")
                 print(str(e))
                 time.sleep(1)
-                continue
+                #continue
             
                         
             #Apply frequency correction
@@ -325,7 +331,9 @@ class ProcessSamples(Process):
             
             
             
-        print("Stopping filtering ...")
+        print("Stopping filtering {}...".format(self.channel))
+        print("Closing pipe {}...".format(self.channel))
+        self.send_q.close()
         
         
 
