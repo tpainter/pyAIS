@@ -1,5 +1,6 @@
 import argparse
 from multiprocessing import Pipe
+import sys
 
 from ais import complex_demod as demod
 from ais import message
@@ -8,7 +9,7 @@ from ais import message
 if __name__ == "__main__":
     #Setup commandline parsing
     parser = argparse.ArgumentParser(description='Decode AIS messages from an SDR.')
-    parser.add_argument('-f', '--file', default=False, action='store_true', dest='from_file', help='Process samples from a file instead of a radio. Default false')
+    parser.add_argument('-f', '--file', default=False, dest='from_file', help='Process samples from a file instead of a radio. Default none')
     parser.add_argument('-s', '--sat', default=False, action='store_true', dest='satellite', help='Tune SDR to satellite AIS frequencies. Default false')
     
     args = parser.parse_args()
@@ -27,22 +28,32 @@ if __name__ == "__main__":
         decimate = 1
         stats_rate = 30
         f = []
-        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8u"]) # 3
         
+        if args.from_file == "_LA_LB_Snippet16_Proc.wav":
+            print("Loading _LA_LB_Snippet16_Proc.wav")
+            f.append(["recordings\_LA_LB_Snippet16_Proc.wav"])
+        elif args.from_file == "helsinki-210-messages.raw":
+            print("Loading helsinki-210-messages.raw")
+            f.append(["recordings\helsinki-210-messages.raw", "16s"])
+        else:
+            print("Unknown file entered. No file loaded.")
+            
+        
+        #f.append(["recordings\\2018-07-15-test-161975000-p51-g30-s48k.raw", "8u"]) # 3        
         
         #f.append(["recordings\\1.num"])
         #f.append(["recordings\\2.num"])
         #f.append(["recordings\\3.num"])
         #f.append(["recordings\\4.num"])
-        #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #
-        #f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit
-        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) 
-        #f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above 
+        #f.append(["recordings\_LA_LB_Snippet16_Proc.wav"]) #85
+        #f.append(["recordings\long-beach-160-messages.wav"]) #same as above, only 8bit #85
+        #f.append(["recordings\helsinki-210-messages.raw", "16s"]) #153
+        #f.append(["recordings\gnuais-stereo-2rx.raw", "16d"]) #Same file as above #error???
         
-        #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8u"]) #13
-        #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #16
+        #f.append(["recordings\\2015-04-19-test-161975000-p45-s48k.raw", "8u"]) #10 (13max?)
+        #f.append(["recordings\\2015-04-19-test-162025000-p45-s48k.raw", "8u"]) #12 (16max?)
         #f.append(["recordings\\2015-04-19-test-161975000-p50-s48k.raw", "8u"]) #19
-        f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #43
+        #f.append(["recordings\\2015-04-19-test-162025000-p50-s48k.raw", "8u"]) #35 (43max?)
         
         SDR = fileread.FromFile(sample_rate, center_freq, channel_A_samples_in, channel_B_samples_in, f, satellite = False)
     else: 
